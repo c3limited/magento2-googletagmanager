@@ -57,6 +57,7 @@ class DataLayer extends DataObject {
      */
     protected $_fullActionName;
 
+    protected $_imageHelper;
 
     /**
      * @param MessageInterface $message
@@ -67,14 +68,17 @@ class DataLayer extends DataObject {
         \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig, 
         \Magento\Customer\Model\Session $customerSession,
         \Magento\Checkout\Model\Session $checkoutSession,
-        \Magento\Framework\Registry $registry
+        \Magento\Framework\Registry $registry,
+        \Magento\Catalog\Helper\Image $imageHelper
     ) {
         $this->_scopeConfig = $scopeConfig;
         $this->_customerSession = $customerSession;
         $this->_context = $context;
         $this->_coreRegistry = $registry;
         $this->_checkoutSession = $checkoutSession;
-        
+        $this->_imageHelper = $imageHelper;
+
+
         $this->fullActionName = $this->_context->getRequest()->getFullActionName();
         
         $this->addVariable('pageType', $this->fullActionName);
@@ -122,7 +126,7 @@ class DataLayer extends DataObject {
                 $category = [];
                 $category['id'] = $_category->getId();
                 $category['name'] = $_category->getName();
-                
+
                 $this->addVariable('category', $category);
                 
                 $this->addVariable('list', 'category');
@@ -146,6 +150,13 @@ class DataLayer extends DataObject {
             $product['sku'] = $_product->getSku();
             $product['name'] = $_product->getName();
             // $this->addVariable('productPrice', $_product->getPrice());
+
+            /**
+             * @mod: Adding of imageUrl and price.
+             */
+            $product['imageUrl'] = $this->_imageHelper->init($_product, 'product_base_image')->setImageFile($_product->getImage())->getUrl();
+            $product['price'] = number_format($_product->getFinalPrice(), '2', '.', ',');
+
             $this->addVariable('product', $product);
         }
 
@@ -161,6 +172,17 @@ class DataLayer extends DataObject {
             $customer['isLoggedIn'] = true;
             $customer['id'] = $this->_customerSession->getCustomerId();
             $customer['groupId'] = $this->_customerSession->getCustomerGroupId();
+
+
+            /**
+             * @mod: Add Email, Title, FirstName and LastName.
+             */
+            $customerModel = $this->_customerSession->getCustomer();
+            $customer['email'] = $customerModel->getEmail();
+            $customer['title'] = $customerModel->getTitle();
+            $customer['firstName'] = $customerModel->getFirstname();
+            $customer['lastName'] = $customerModel->getLastname();
+
             //$customer['groupCode'] = ;
         } else {
             $customer['isLoggedIn'] = false;
