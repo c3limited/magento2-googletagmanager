@@ -154,7 +154,7 @@ class DataLayer extends DataObject {
             /**
              * @mod: Adding of imageUrl and price.
              */
-            $product['imageUrl'] = $this->_imageHelper->init($_product, 'product_base_image')->setImageFile($_product->getImage())->getUrl();
+            $product['image_url'] = $this->_imageHelper->init($_product, 'product_base_image')->setImageFile($_product->getImage())->getUrl();
             $product['price'] = number_format($_product->getFinalPrice(), '2', '.', ',');
 
             $this->addVariable('product', $product);
@@ -205,6 +205,9 @@ class DataLayer extends DataObject {
         $quote = $this->getQuote();
         $cart = [];
 
+
+        $addToCartProductQueue = $this->_checkoutSession->getData('add_to_cart_product_queue');
+
         if ($quote->getItemsCount()) {
             $cart['hasItems'] = true;
             
@@ -214,15 +217,23 @@ class DataLayer extends DataObject {
                     'sku' => $item->getSku(),
                     'name' => $item->getName(),
                     'price' => $item->getPrice(),
-                    'quantity' => $item->getQty()
+                    'quantity' => $item->getQty(),
+                    'product_id' => $item->getProductId(),
+                    'image_url' => $this->_imageHelper->init($item->getProduct(), 'product_base_image')->setImageFile($item->getProduct()->getSmallImage())->getUrl(),
+                    'added' => (in_array($item->getProductId(), $addToCartProductQueue))
                 ];
+
+                if (in_array($item->getProductId(), $addToCartProductQueue)) {
+                    unset($addToCartProductQueue[array_search($item->getProductId(), $addToCartProductQueue)]);
+                    $this->_checkoutSession->setData('add_to_cart_product_queue', $addToCartProductQueue);
+                }
             }
-            
+
+            $cart['quote_id'] = $quote->getId();
             $cart['items'] = $items;
             $cart['total'] = $quote->getGrandTotal();
             $cart['itemCount'] = $quote->getItemsCount();
-            
-            
+
             //set coupon code
             $coupon = $quote->getCouponCode();
             

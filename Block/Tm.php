@@ -47,8 +47,7 @@ class Tm extends Template {
     
     private $_orderCollection;
 
-
-
+    protected $_imageHelper;
 
     protected $_customVariables = array();
 
@@ -66,12 +65,14 @@ class Tm extends Template {
         CookieHelper $cookieHelper, 
         \MagePal\GoogleTagManager\Model\DataLayer $dataLayer,
         \Magento\Sales\Model\ResourceModel\Order\CollectionFactory $salesOrderCollection,
+        \Magento\Catalog\Helper\Image $imageHelper,
         array $data = []
     ) {
         $this->_cookieHelper = $cookieHelper;
         $this->_gtmHelper = $gtmHelper;
         $this->_dataLayerModel = $dataLayer;
         $this->_salesOrderCollection = $salesOrderCollection;
+        $this->_imageHelper = $imageHelper;
         parent::__construct($context, $data);
 
         $this->addVariable('ecommerce', ['currencyCode' => $this->_storeManager->getStore()->getCurrentCurrency()->getCode()]);
@@ -95,20 +96,27 @@ class Tm extends Template {
         foreach ($collection as $order) {
                         
             foreach ($order->getAllVisibleItems() as $item) {
+
                 $product[] = array(
                     'sku' => $item->getSku(),
                     'name' => $item->getName(),
                     'price' => $item->getBasePrice(),
-                    'quantity' => $item->getQtyOrdered()
-                );
+                    'quantity' => $item->getQtyOrdered(),
+                    'product_id' => $item->getProductId(),
+                    'image_url' => $this->_imageHelper->init($item->getProduct(), 'product_base_image')->setImageFile($item->getProduct()->getImage())->getUrl()
+
+            );
             }
             
-            $transaction = array(
-                'transactionId' => $order->getIncrementId(),
-                'transactionAffiliation' => $this->escapeJsQuote($this->_storeManager->getStore()->getFrontendName()),
-                'transactionTotal' => $order->getBaseGrandTotal(),
-                'transactionShipping' => $order->getBaseShippingAmount(),
-                'transactionProducts' => $product
+            $transaction = array('transaction' => array(
+                    'transactionId' => $order->getIncrementId(),
+                    'transactionAffiliation' => $this->escapeJsQuote($this->_storeManager->getStore()->getFrontendName()),
+                    'transactionTotal' => $order->getBaseGrandTotal(),
+                    'transactionShipping' => $order->getBaseShippingAmount(),
+                    'transactionShippingMethod' => $order->getShippingMethod(),
+                    'transactionDiscountAmount' => $order->getBaseDiscountAmount(),
+                    'transactionProducts' => $product
+                )
             );
             
             

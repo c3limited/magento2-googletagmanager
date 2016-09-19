@@ -12,4 +12,7 @@
     <event name="multishipping_checkout_controller_success_action">
         <observer name="magepal_gtm_googleanalytics_order_success" instance="MagePal\GoogleTagManager\Observer\Frontend\OrderSuccessPageViewObserver" />
     </event>
+    <event name="checkout_cart_add_product_complete">
+        <observer name="magepal_gtm_add_product_complete" instance="MagePal\GoogleTagManager\Observer\Frontend\AddToCartObserver" />
+    </event>
 </config>
