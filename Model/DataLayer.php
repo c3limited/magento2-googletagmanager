@@ -156,6 +156,7 @@ class DataLayer extends DataObject {
              */
             $product['image_url'] = $this->_imageHelper->init($_product, 'product_base_image')->setImageFile($_product->getImage())->getUrl();
             $product['price'] = number_format($_product->getFinalPrice(), '2', '.', ',');
+            $product['tags'] = $this->getProductCategoryNames($_product);
 
             $this->addVariable('product', $product);
         }
@@ -193,7 +194,13 @@ class DataLayer extends DataObject {
         return $this;
     }
     
-    
+    public function getProductCategoryNames($product)
+    {
+        $categories = $product->getCategoryCollection();
+        $categories->addFieldToSelect(array('name'));
+        return $categories->getColumnValues('name');
+    }
+
     /**
      * Set cart Data Layer
      */
@@ -220,7 +227,8 @@ class DataLayer extends DataObject {
                     'quantity' => $item->getQty(),
                     'product_id' => $item->getProductId(),
                     'image_url' => $this->_imageHelper->init($item->getProduct(), 'product_base_image')->setImageFile($item->getProduct()->getSmallImage())->getUrl(),
-                    'added' => (in_array($item->getProductId(), $addToCartProductQueue))
+                    'added' => (in_array($item->getProductId(), $addToCartProductQueue)),
+                    'tags' => $this->getProductCategoryNames($item->getProduct())
                 ];
 
                 if (in_array($item->getProductId(), $addToCartProductQueue)) {

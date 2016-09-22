@@ -94,7 +94,9 @@ class Tm extends Template {
         $result = [];
         
         foreach ($collection as $order) {
-                        
+            
+            $product = [];
+            
             foreach ($order->getAllVisibleItems() as $item) {
 
                 $product[] = array(
@@ -103,8 +105,8 @@ class Tm extends Template {
                     'price' => $item->getBasePrice(),
                     'quantity' => $item->getQtyOrdered(),
                     'product_id' => $item->getProductId(),
-                    'image_url' => $this->_imageHelper->init($item->getProduct(), 'product_base_image')->setImageFile($item->getProduct()->getImage())->getUrl()
-
+                    'image_url' => $this->_imageHelper->init($item->getProduct(), 'product_base_image')->setImageFile($item->getProduct()->getImage())->getUrl(),
+                    'tags' => $this->_dataLayerModel->getProductCategoryNames($item->getProduct())
             );
             }
             
