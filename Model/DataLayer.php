@@ -55,9 +55,17 @@ class DataLayer extends DataObject {
     /**
      * @var string
      */
-    protected $_fullActionName;
+    protected $fullActionName;
 
     protected $_imageHelper;
+
+    protected $catalogSession;
+
+    protected $productFactory;
+
+    protected $quoteItemFactory;
+
+    protected $categoryFactory;
 
     /**
      * @param MessageInterface $message
@@ -69,7 +77,11 @@ class DataLayer extends DataObject {
         \Magento\Customer\Model\Session $customerSession,
         \Magento\Checkout\Model\Session $checkoutSession,
         \Magento\Framework\Registry $registry,
-        \Magento\Catalog\Helper\Image $imageHelper
+        \Magento\Catalog\Helper\Image $imageHelper,
+        \Magento\Catalog\Model\Session $catalogSession,
+        \Magento\Catalog\Model\ProductFactory $productFactory,
+        \Magento\Quote\Model\Quote\ItemFactory $quoteItemFactory,
+        \Magento\Catalog\Model\CategoryFactory $categoryFactory
     ) {
         $this->_scopeConfig = $scopeConfig;
         $this->_customerSession = $customerSession;
@@ -77,18 +89,22 @@ class DataLayer extends DataObject {
         $this->_coreRegistry = $registry;
         $this->_checkoutSession = $checkoutSession;
         $this->_imageHelper = $imageHelper;
+        $this->catalogSession = $catalogSession;
+        $this->productFactory = $productFactory;
+        $this->quoteItemFactory = $quoteItemFactory;
+        $this->categoryFactory = $categoryFactory;
+    }
 
-
-        $this->fullActionName = $this->_context->getRequest()->getFullActionName();
-        
+    public function setDataLayers($pageType)
+    {
+        $this->fullActionName = $pageType;
         $this->addVariable('pageType', $this->fullActionName);
         $this->addVariable('list', 'other');
-        
+
         $this->setCustomerDataLayer();
         $this->setProductDataLayer();
         $this->setCategoryDataLayer();
         $this->setCartDataLayer();
-        
     }
 
     /**
@@ -120,16 +136,18 @@ class DataLayer extends DataObject {
      * Set category Data Layer
      */
     protected function setCategoryDataLayer() {
-        if($this->fullActionName === 'catalog_category_view'
-           && $_category = $this->_coreRegistry->registry('current_category')
-        ) {
-                $category = [];
-                $category['id'] = $_category->getId();
-                $category['name'] = $_category->getName();
-
-                $this->addVariable('category', $category);
-                
-                $this->addVariable('list', 'category');
+        if($this->fullActionName === 'catalog_category_view') {
+            $categoryId = $this->catalogSession->getData('last_viewed_category_id');
+            if ($categoryId) {
+                $_category = $this->categoryFactory->create()->load($categoryId);
+                if ($_category) {
+                    $category = [];
+                    $category['id'] = $_category->getId();
+                    $category['name'] = $_category->getName();
+                    $this->addVariable('category', $category);
+                    $this->addVariable('list', 'category');
+                }
+            }
         }
 
         return $this;
@@ -140,25 +158,29 @@ class DataLayer extends DataObject {
      * Set product Data Layer
      */
     protected function setProductDataLayer() {
-        if($this->fullActionName === 'catalog_product_view'
-           && $_product = $this->_coreRegistry->registry('current_product')
-        ) {
-            $this->addVariable('list', 'detail');
+        if($this->fullActionName === 'catalog_product_view') {
+            $productId = $this->catalogSession->getData('last_viewed_product_id');
+            if ($productId) {
+                $_product = $this->productFactory->create()->load($productId);
+                if ($_product->getId()) {
+                    $this->addVariable('list', 'detail');
 
-            $product = [];
-            $product['id'] = $_product->getId();
-            $product['sku'] = $_product->getSku();
-            $product['name'] = $_product->getName();
-            // $this->addVariable('productPrice', $_product->getPrice());
+                    $product = [];
+                    $product['id'] = $_product->getId();
+                    $product['sku'] = $_product->getSku();
+                    $product['name'] = $_product->getName();
+                    // $this->addVariable('productPrice', $_product->getPrice());
 
-            /**
-             * @mod: Adding of imageUrl and price.
-             */
-            $product['image_url'] = $this->_imageHelper->init($_product, 'product_base_image')->setImageFile($_product->getImage())->getUrl();
-            $product['price'] = number_format($_product->getFinalPrice(), '2', '.', ',');
-            $product['tags'] = $this->getProductCategoryNames($_product);
+                    /**
+                     * @mod: Adding of imageUrl and price.
+                     */
+                    $product['image_url'] = $this->_imageHelper->init($_product, 'product_base_image')->setImageFile($_product->getImage())->getUrl();
+                    $product['price'] = number_format($_product->getFinalPrice(), '2', '.', ',');
+                    $product['tags'] = $this->getProductCategoryNames($_product);
 
-            $this->addVariable('product', $product);
+                    $this->addVariable('product', $product);
+                }
+            }
         }
 
         return $this;
@@ -219,11 +241,20 @@ class DataLayer extends DataObject {
             $cart['hasItems'] = true;
             
             // set items
-            foreach($quote->getAllVisibleItems() as $item){
+            foreach($quote->getAllItems() as $item){
+                if (is_array($item->getChildren()) && count($item->getChildren())) {
+                    continue;
+                }
+
+                if ($item->getParentItemId()) {
+                    $parentItem = $this->quoteItemFactory->create()->load($item->getParentItemId());
+                    $parentPrice = $parentItem->getPriceInclTax();
+                }
+
                 $items[] = [
                     'sku' => $item->getSku(),
                     'name' => $item->getName(),
-                    'price' => $item->getPrice(),
+                    'price' => (isset($parentPrice)) ? $parentPrice : $item->getPriceInclTax(),
                     'quantity' => $item->getQty(),
                     'product_id' => $item->getProductId(),
                     'image_url' => $this->_imageHelper->init($item->getProduct(), 'product_base_image')->setImageFile($item->getProduct()->getSmallImage())->getUrl(),

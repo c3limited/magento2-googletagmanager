@@ -1,0 +1,14 @@
+<div id="gtm_container"></div>
+
+<script type="text/javascript">
+    require(['jquery'], function($) {
+        $(function() {
+            $.ajax('<?php echo $block->getUrl('magepalgtm/gtm/index'); ?>?pageType=<?php echo $block->getRequest()->getFullActionName(); ?>', {
+                success: function(response) {
+                    $('#gtm_container').append(response.dataLayer);
+                    $('#gtm_container').append(response.gtm);
+                }
+            });
+        });
+    });
+</script>

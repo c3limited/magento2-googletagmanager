@@ -51,7 +51,7 @@ class Tm extends Template {
 
     protected $_customVariables = array();
 
-
+    protected $checkoutSession;
     /**
      * @param Context $context
      * @param CookieHelper $cookieHelper
@@ -66,6 +66,7 @@ class Tm extends Template {
         \MagePal\GoogleTagManager\Model\DataLayer $dataLayer,
         \Magento\Sales\Model\ResourceModel\Order\CollectionFactory $salesOrderCollection,
         \Magento\Catalog\Helper\Image $imageHelper,
+        \Magento\Checkout\Model\Session $checkoutSession,
         array $data = []
     ) {
         $this->_cookieHelper = $cookieHelper;
@@ -74,8 +75,11 @@ class Tm extends Template {
         $this->_salesOrderCollection = $salesOrderCollection;
         $this->_imageHelper = $imageHelper;
         parent::__construct($context, $data);
-
+        
         $this->addVariable('ecommerce', ['currencyCode' => $this->_storeManager->getStore()->getCurrentCurrency()->getCode()]);
+
+        $this->_dataLayerModel->setDataLayers($this->_request->getParam('pageType'));
+        $this->checkoutSession = $checkoutSession;
     }
     
     /**
@@ -84,48 +88,52 @@ class Tm extends Template {
      * @return void|string
      */
     public function getOrdersTrackingCode()
-    {       
-        $collection = $this->getOrderCollection();
-        
-        if(!$collection){
-            return;
-        }
-        
-        $result = [];
-        
-        foreach ($collection as $order) {
-            
-            $product = [];
-            
-            foreach ($order->getAllVisibleItems() as $item) {
+    {
+        if ($this->_request->getParam('pageType') == "checkout_onepage_success") {
+            $collection = $this->getOrderCollection();
 
-                $product[] = array(
-                    'sku' => $item->getSku(),
-                    'name' => $item->getName(),
-                    'price' => $item->getBasePrice(),
-                    'quantity' => $item->getQtyOrdered(),
-                    'product_id' => $item->getProductId(),
-                    'image_url' => $this->_imageHelper->init($item->getProduct(), 'product_base_image')->setImageFile($item->getProduct()->getImage())->getUrl(),
-                    'tags' => $this->_dataLayerModel->getProductCategoryNames($item->getProduct())
-            );
+            if (!$collection) {
+                return;
             }
-            
-            $transaction = array('transaction' => array(
+
+            $result = [];
+
+            foreach ($collection as $order) {
+
+                $product = [];
+
+                foreach ($order->getAllVisibleItems() as $item) {
+
+                    $product[] = array(
+                        'sku' => $item->getSku(),
+                        'name' => $item->getName(),
+                        'price' => $item->getPriceInclTax(),
+                        'quantity' => $item->getQtyOrdered(),
+                        'product_id' => $item->getProductId(),
+                        'image_url' => $this->_imageHelper->init($item->getProduct(), 'product_base_image')->setImageFile($item->getProduct()->getImage())->getUrl(),
+                        'tags' => $this->_dataLayerModel->getProductCategoryNames($item->getProduct())
+                    );
+                }
+
+                $transaction = array('transaction' => array(
                     'transactionId' => $order->getIncrementId(),
                     'transactionAffiliation' => $this->escapeJsQuote($this->_storeManager->getStore()->getFrontendName()),
-                    'transactionTotal' => $order->getBaseGrandTotal(),
-                    'transactionShipping' => $order->getBaseShippingAmount(),
+                    'transactionTotal' => $order->getGrandTotal(),
+                    'transactionShipping' => $order->getShippingAmount(),
                     'transactionShippingMethod' => $order->getShippingMethod(),
                     'transactionDiscountAmount' => $order->getBaseDiscountAmount(),
                     'transactionProducts' => $product
                 )
-            );
-            
-            
-            $result[] = sprintf("dataLayer.push(%s);", json_encode($transaction));
+                );
+
+
+                $result[] = sprintf("dataLayer.push(%s);", json_encode($transaction));
+            }
+
+            return implode("\n", $result) . "\n";
         }
-        
-        return implode("\n", $result) . "\n";
+
+        return "";
     }
 
     /**
@@ -208,12 +216,11 @@ class Tm extends Template {
      * @return $this
      */
     public function getOrderCollection(){
-
-        $orderIds = $this->getOrderIds();
-        if (empty($orderIds) || !is_array($orderIds)) {
+        $lastOrderId = $this->checkoutSession->getLastOrderId();
+        if (!$lastOrderId) {
             return;
         }
-
+        $orderIds = array($this->checkoutSession->getLastOrderId());
         if(!$this->_orderCollection){
             $this->_orderCollection = $this->_salesOrderCollection->create();
             $this->_orderCollection->addFieldToFilter('entity_id', ['in' => $orderIds]);
@@ -221,5 +228,4 @@ class Tm extends Template {
         
         return $this->_orderCollection;
     }
-
 }
