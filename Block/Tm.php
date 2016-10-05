@@ -119,9 +119,9 @@ class Tm extends Template {
                     'transactionId' => $order->getIncrementId(),
                     'transactionAffiliation' => $this->escapeJsQuote($this->_storeManager->getStore()->getFrontendName()),
                     'transactionTotal' => $order->getGrandTotal(),
-                    'transactionShipping' => $order->getShippingAmount(),
+                    'transactionShipping' => $order->getShippingInclTax(),
                     'transactionShippingMethod' => $order->getShippingMethod(),
-                    'transactionDiscountAmount' => $order->getBaseDiscountAmount(),
+                    'transactionDiscountAmount' => $order->getDiscountAmount(),
                     'transactionProducts' => $product
                 )
                 );
