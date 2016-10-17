@@ -67,6 +67,8 @@ class DataLayer extends DataObject {
 
     protected $categoryFactory;
 
+    protected $categoryId;
+
     /**
      * @param MessageInterface $message
      * @param null $parameters
@@ -95,9 +97,10 @@ class DataLayer extends DataObject {
         $this->categoryFactory = $categoryFactory;
     }
 
-    public function setDataLayers($pageType)
+    public function setDataLayers($pageType, $categoryId)
     {
         $this->fullActionName = $pageType;
+        $this->categoryId = $categoryId;
         $this->addVariable('pageType', $this->fullActionName);
         $this->addVariable('list', 'other');
 
@@ -137,9 +140,8 @@ class DataLayer extends DataObject {
      */
     protected function setCategoryDataLayer() {
         if($this->fullActionName === 'catalog_category_view') {
-            $categoryId = $this->catalogSession->getData('last_viewed_category_id');
-            if ($categoryId) {
-                $_category = $this->categoryFactory->create()->load($categoryId);
+            if ($this->categoryId) {
+                $_category = $this->categoryFactory->create()->load($this->categoryId);
                 if ($_category) {
                     $category = [];
                     $category['id'] = $_category->getId();

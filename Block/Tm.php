@@ -78,7 +78,7 @@ class Tm extends Template {
         
         $this->addVariable('ecommerce', ['currencyCode' => $this->_storeManager->getStore()->getCurrentCurrency()->getCode()]);
 
-        $this->_dataLayerModel->setDataLayers($this->_request->getParam('pageType'));
+        $this->_dataLayerModel->setDataLayers($this->_request->getParam('pageType'), $this->_request->getParam('categoryId'));
         $this->checkoutSession = $checkoutSession;
     }
     

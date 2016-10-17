@@ -1,9 +1,19 @@
+<?php
+$catalogHelper = $this->helper('\Magento\Catalog\Helper\Data');
+$category = $catalogHelper->getCategory();
+$categoryId = false;
+if ($category) {
+    $categoryId = $category->getId();
+}
+?>
+
+
 <div id="gtm_container"></div>
 
 <script type="text/javascript">
     require(['jquery'], function($) {
         $(function() {
-            $.ajax('<?php echo $block->getUrl('magepalgtm/gtm/index'); ?>?pageType=<?php echo $block->getRequest()->getFullActionName(); ?>', {
+            $.ajax('<?php echo $block->getUrl('magepalgtm/gtm/index'); ?>?pageType=<?php echo $block->getRequest()->getFullActionName(); ?>&categoryId=<?php echo $categoryId ?>', {
                 success: function(response) {
                     $('#gtm_container').append(response.dataLayer);
                     $('#gtm_container').append(response.gtm);
