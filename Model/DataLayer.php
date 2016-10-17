@@ -237,15 +237,13 @@ class DataLayer extends DataObject {
 
         $addToCartProductQueue = $this->_checkoutSession->getData('add_to_cart_product_queue');
 
+        $items = [];
+
         if ($quote->getItemsCount()) {
             $cart['hasItems'] = true;
             
             // set items
-            foreach($quote->getAllItems() as $item){
-                if (is_array($item->getChildren()) && count($item->getChildren())) {
-                    continue;
-                }
-
+            foreach($quote->getAllVisibleItems() as $item) {
                 if ($item->getParentItemId()) {
                     $parentItem = $this->quoteItemFactory->create()->load($item->getParentItemId());
                     $parentPrice = $parentItem->getPriceInclTax();
