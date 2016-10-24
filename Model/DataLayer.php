@@ -179,7 +179,7 @@ class DataLayer extends DataObject {
                      * @mod: Adding of imageUrl and price.
                      */
                     $product['image_url'] = $this->_imageHelper->init($_product, 'product_base_image')->setImageFile($_product->getImage())->getUrl();
-                    $product['price'] = number_format($_product->getFinalPrice(), '2', '.', ',');
+                    $product['price'] = floatval($_product->getFinalPrice());
                     $product['tags'] = $this->getProductCategoryNames($_product);
 
                     $this->addVariable('product', $product);
@@ -272,7 +272,7 @@ class DataLayer extends DataObject {
 
             $cart['quote_id'] = $quote->getId();
             $cart['items'] = $items;
-            $cart['total'] = $quote->getGrandTotal();
+            $cart['total'] = floatval($quote->getGrandTotal());
             $cart['itemCount'] = $quote->getItemsCount();
 
             //set coupon code
