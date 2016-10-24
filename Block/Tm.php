@@ -107,8 +107,8 @@ class Tm extends Template {
                     $product[] = array(
                         'sku' => $item->getSku(),
                         'name' => $item->getName(),
-                        'price' => $item->getPriceInclTax(),
-                        'quantity' => $item->getQtyOrdered(),
+                        'price' => floatval($item->getPriceInclTax()),
+                        'quantity' => floatval($item->getQtyOrdered()),
                         'product_id' => $item->getProductId(),
                         'image_url' => $this->_imageHelper->init($item->getProduct(), 'product_base_image')->setImageFile($item->getProduct()->getImage())->getUrl(),
                         'tags' => $this->_dataLayerModel->getProductCategoryNames($item->getProduct())
@@ -118,10 +118,10 @@ class Tm extends Template {
                 $transaction = array('transaction' => array(
                     'transactionId' => $order->getIncrementId(),
                     'transactionAffiliation' => $this->escapeJsQuote($this->_storeManager->getStore()->getFrontendName()),
-                    'transactionTotal' => $order->getGrandTotal(),
-                    'transactionShipping' => $order->getShippingInclTax(),
+                    'transactionTotal' => floatval($order->getGrandTotal()),
+                    'transactionShipping' => floatval($order->getShippingInclTax()),
                     'transactionShippingMethod' => $order->getShippingMethod(),
-                    'transactionDiscountAmount' => $order->getDiscountAmount(),
+                    'transactionDiscountAmount' => floatval($order->getDiscountAmount()),
                     'transactionProducts' => $product
                 )
                 );

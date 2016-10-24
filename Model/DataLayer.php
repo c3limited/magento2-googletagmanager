@@ -143,10 +143,12 @@ class DataLayer extends DataObject {
             if ($this->categoryId) {
                 $_category = $this->categoryFactory->create()->load($this->categoryId);
                 if ($_category) {
-                    $category = [];
-                    $category['id'] = $_category->getId();
-                    $category['name'] = $_category->getName();
-                    $this->addVariable('category', $category);
+                    $categories = [];
+                    $parentCategories = $_category->getParentCategories();
+                    foreach ($parentCategories as $parentCategory) {
+                        $categories[] = $parentCategory->getName();
+                    }
+                    $this->addVariable('categories', $categories);
                     $this->addVariable('list', 'category');
                 }
             }
@@ -243,7 +245,7 @@ class DataLayer extends DataObject {
 
         if ($quote->getItemsCount()) {
             $cart['hasItems'] = true;
-            
+
             // set items
             foreach($quote->getAllVisibleItems() as $item) {
                 if ($item->getParentItemId()) {
@@ -254,7 +256,7 @@ class DataLayer extends DataObject {
                 $items[] = [
                     'sku' => $item->getSku(),
                     'name' => $item->getName(),
-                    'price' => (isset($parentPrice)) ? $parentPrice : $item->getPriceInclTax(),
+                    'price' => (isset($parentPrice)) ? floatval($parentPrice) : floatval($item->getPriceInclTax()),
                     'quantity' => $item->getQty(),
                     'product_id' => $item->getProductId(),
                     'image_url' => $this->_imageHelper->init($item->getProduct(), 'product_base_image')->setImageFile($item->getProduct()->getSmallImage())->getUrl(),
